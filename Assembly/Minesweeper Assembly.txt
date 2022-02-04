@@ -1,0 +1,705 @@
+;	Sistemi I - Projektna naloga - Minesweeper
+;	Navodila: Na zaslonu so sivo-bela (neodkrita) polja, v tekstovnem polju pa
+;	x-(vodoravna) in y-(navpična) osi, v tekstovno polje vnesem
+;	števila z numpad vmesnikom, preko njega pa igri sporočim
+;	katero polje bi želel razkriti. Med igro se bodo
+;	polja obarvala, in sicer če je polje zeleno, okoli njega
+;	ni nobene bombe, če je rumena, je okoli le 1 bomba, če je
+;	oranžna sta okoli 2, modra 3, vijolična 4, rjava 5, rdeča
+;	6, ko pa se polje obarva črno, je igre konec in si izgubil
+
+;	V tekstovno polje se vedno vpiše 4 števila, če želite
+;	vpisati enomestno število najprej pritisnite katerokoli št
+;	razen 1, in potem na število 0-9. S klikom na zvezdico se zadnji vnos izbriše.
+
+;	Polje je v velikosti 16x16.
+
+;	Spremenljivke v kodi x y z so parametri, ki "naključno" postavijo bombe na igro. (Spremeni števila
+;	za drugačno igralno polje).
+
+
+
+
+
+JMP main
+x:DW 7
+y:DW 17
+z:DW 20
+bombs:DW 0				;število bomb
+win:DB "    You Win!"
+	DB 0
+lose:DB "    You Lose!"
+	 DB 0
+     
+       
+main:
+MOV SP, 0x0DDF 		; stack nad gamemirror
+CALL start
+nadaljevanje:
+CALL input
+CALL ggwp
+JMP nadaljevanje
+hlt:
+HLT     
+     
+
+start: 				;Siv display, X in Y os
+MOV A, gamedisplay
+loop:
+MOV B, enddisplay
+MOV C, A 			;Tu se začne za izgled šahovnice
+SHL C, 15
+SHR C, 15
+MOV D, A
+SHL D, 11
+SHR D, 15
+ADD C, D
+CMP C, 1
+JE white
+MOVB [A], 182		;Siva barva
+JNE gray
+white:
+MOVB [A], 255		;Bela barva
+gray:
+INC A
+CMP A, B
+JNE loop
+MOV [textrow1], 0x583A
+MOV [textrow2], 0x593A
+MOV C, 0
+CALL setup
+RET
+
+setup: 			;V tej funkciji izdelam random lokacije min
+MOV D, 0
+MOV A, [x]
+MOV B, [y]
+MOV C, [z]
+MUL C
+PUSH A
+ADD D, 2
+SHL A, 6
+PUSH A
+ADD D, 2
+ADD A, C
+ADD A, B
+PUSH A
+ADD D, 2
+SHL B, 4
+ADD B, C
+PUSH B
+ADD D, 2
+SHR B, 2
+PUSH B
+ADD D, 2
+INC C
+PUSH C
+ADD D, 2
+SHL C, 2
+PUSH C
+ADD D, 2
+ADD C, C
+INC C
+PUSH C
+ADD D, 2
+ADD A, C
+PUSH A
+ADD D, 2
+SUB A, B
+PUSH A
+ADD D, 2
+SHR A, 2
+INC A
+PUSH A
+ADD D, 2
+SHL C, 1
+PUSH C
+ADD D, 2
+ADD C, B
+PUSH C
+ADD D, 2
+DEC C
+PUSH C
+ADD D, 2
+SUB B, A
+PUSH B
+ADD D, 2
+ADD B, C
+PUSH B
+ADD D, 2
+MOV C, 0xFFFF
+SUB C, [z]
+PUSH C
+ADD D, 2
+SUB C, A
+PUSH C
+ADD D, 2
+ADD C, 200
+PUSH C
+ADD D, 2
+DEC C
+PUSH C
+ADD D, 2
+MOV A, 0xFFFF
+SUB A, [x]
+PUSH A
+ADD D, 2
+SHR A, 1
+PUSH A
+ADD D, 2
+SHR C, 1
+PUSH C
+ADD D, 2
+SHR A, 1
+PUSH A
+ADD D, 2
+ADD A, [x]
+PUSH A
+ADD D, 2
+ADD A, [y]
+PUSH A
+ADD D, 2
+SHL A, 1
+PUSH A
+ADD D, 2
+SUB B, A
+PUSH B
+ADD D, 2
+SHL B, 2
+PUSH B
+ADD D, 2
+SUB B, C
+PUSH B
+ADD D, 2
+SHL B, 2
+INC B
+PUSH B
+ADD D, 2
+CALL bomblayout
+CALL numbers
+RET
+
+bomblayout: 		;Postavljam bombe na igrisce
+MOV A, 0
+MOV C, 0
+POP C 				;addressa na klic funkcije
+zanka:
+DEC D
+MOV B, gamemirror	;v B postavim lokacijo igralnega polja nevidnega uporabniku
+MOV A, 0
+POPB AL
+ADD B, A
+MOVB AL, [B]
+CMP A, 9			;Če je bomba, ne povečujem števca za remaining
+JE nedodaj
+CALL addbombs
+MOVB [B], 9
+nedodaj:
+CMP D, 0			;Pregledujem če sem že izprazil stack
+JNE zanka
+PUSH C
+RET
+
+numbers: 			;Ta funkcija postavi številke vsaki memory addressi
+MOV D, gamemirror
+DEC D
+zacetek: 			;preverim ali je na tem mestu bomba
+MOV C, 0
+MOV B, 0
+INC D
+CMP D, 0x0EDF		;Pregled če sem na zadnjem mestu.
+JE lastoneifbomb
+MOVB BL,[D]
+CMP B, 9
+JE zacetek 			;če je bomba, preglej naslednji naslov
+MOV B, 0
+desno:
+MOV A, D
+SHL A, 12
+CMP A, 0xF000 		;pregledam če je addresa na skrajno desni
+JE levo 			;če da spustim vse desne addrese
+MOV A, D
+INC A
+MOVB BL, [A]
+CMP B, 9
+JNE desnozgoraj
+INC C
+desnozgoraj:
+MOV A, D
+CMP A, 0x0DF0 		;pregledam če je addresa na vrhu
+JB desnospodaj
+SUB A, 15
+MOVB BL, [A]
+CMP B, 9
+JNE desnospodaj
+INC C
+desnospodaj:
+MOV A, D
+CMP A, 0x0ED0 		;pregledam če je addresa na podnu
+JAE levo
+ADD A, 17
+MOVB BL, [A]
+CMP B, 9
+JNE levo:
+INC C				;Register C hrani koliko je bomb okoli lokacije
+levo:
+MOV A, D
+SHL A, 12
+CMP A, 0
+JE zgoraj
+MOV A, D
+DEC A
+MOVB BL, [A]
+CMP B, 9
+JNE levozgoraj
+INC C
+levozgoraj:
+MOV A, D
+CMP A, 0x0DF0
+JB levospodaj
+SUB A, 17
+MOVB BL, [A]
+CMP B, 9
+JNE levospodaj
+INC C
+levospodaj:
+MOV A, D
+CMP A, 0x0ED0
+JAE zgoraj
+ADD A, 15
+MOVB BL, [A]
+CMP B, 9
+JNE zgoraj
+INC C
+zgoraj:
+MOV A, D
+CMP A, 0x0DF0
+JB spodaj
+SUB A, 16
+MOVB BL, [A]
+CMP B, 9
+JNE spodaj
+INC C
+spodaj:
+MOV A, D
+CMP A, 0x0ED0
+JAE konec
+ADD A, 16
+MOVB BL, [A]
+CMP B, 9
+JNE konec
+INC C
+konec:
+MOVB [D], CL 		;v addreso shranim število (koliko je bomb okoli)
+MOV B, textrow1 	;Preverim ali sem na koncu
+DEC B
+CMP D, B 			;še primerjava če je konec polja rezervirano za igro
+JNE zacetek
+lastoneifbomb:
+RET
+
+
+input:				;funkcija sprejema 4 vhodne elemente
+MOV C, 0
+POP B
+MOV D, xaxis 		;zapis števil zraven x
+check:
+IN 5 				;preverim ali je uporabnik kaj kliknil
+CMP A, 0
+JE check
+IN 6 				;katero število
+CMP A, 0x002A		;pregledam če je slučajno *
+JNE go
+CALL delete
+JMP check
+go:
+MOVB [D], AL		;zapišem število zraven x/y
+SUB A, 48			;izračun, da igra ve katera številka je to
+INC D 				;naslednji text-box
+PUSHB AL 			;shranim vrednost
+INC C
+CMP C, 2
+JNE skip
+MOV D, yaxis 		;zapis števil zraven y
+skip:
+CMP C, 4
+JNE check
+MOV C, B			;v register C shranim lokacijo CALL-a
+MOV B, 0
+MOV A, 0
+POPB BL 			;v registra A in B shranim y vrednost
+POPB AL
+CMP A, 1
+JNE manjoddeset1	;Tu pregledam če je na desetiškem mestu enica!
+SHL A, 3
+ADD A, 2
+ADDB BL, AL			;izračun vrednosti v hexa
+manjoddeset1:
+MOV D, B 			;y v register D
+POPB BL 			;v register B shranim x
+POPB AL
+CMP A, 1
+JNE manjoddeset2
+SHL A, 3
+ADD A, 2
+ADDB BL, AL
+manjoddeset2:
+PUSH C
+PUSHB BL
+PUSHB DL
+CALL reveal
+CALL erase
+RET
+
+delete:			;Funkcija je namenjena brisanju zadnjega vnešenega števila če ste pritisnili *
+CMP D, xaxis
+JE nodelete
+CMP D, yaxis
+JE druginacin
+DEC D
+MOV [D], 0
+DEC C
+JMP nodelete
+druginacin:		;Tu je drugače, ker tu kaže na prvo cifro zraven Y in mora skoči do druge pri X-u..
+SUB D, 15		;Zato mora tu 15 mest v levo
+MOV [D], 0
+DEC C			;Zmanjšam še counter iz input funkcije
+nodelete:
+RET
+
+erase:			;Funkcija je namenjena brisanju števil na tekstovnem prikazovalniku
+MOV C, 0
+MOV A, xaxis
+ponovi:
+MOVB [A], 0
+INC A
+INC C
+CMP C, 2
+JNE nochange
+MOV A, yaxis	;X-sem že počistil sedaj še Y
+nochange:
+CMP C, 4
+JE skok
+JMP ponovi
+skok:
+RET
+
+reveal: 		;funkcija pri kateri se razkrije memory
+POP D
+POPB BL
+POPB AL
+PUSH D
+CMPB BL, 0		;Preverjam
+JE falseinput	;če
+CMPB AL, 0		;je
+JNE itsfine		;input
+falseinput:		;X:00 ali		
+RET				;Y:00 (napaka)
+itsfine:
+DEC B			;Decreasam zato da uporabnik vnaša 01-16 števila namesto 00-15
+DEC A
+PUSH D 			;shranim lokacijo calla na stack in sprostim D
+MOV D, 0
+CMP B, 0
+JE preskok 		;če je Y=0 potem preskočim iskanje lokacije saj je v prvi vrsti
+location: 		;iskanje vnešene lokacije, če ni v prvi vrsti
+ADD A, 16
+DEC B
+CMP B, 0
+JNE location
+preskok:
+CMP A, 256
+JA falseinput	;Neveljaven vnos
+ADD A, gamemirror
+MOVB BL, [A]
+CMP B, 0 		;pogoj če je nič, potem v funkcijo zero
+JNE notzero
+CALL zero
+JMP nieksplozije
+notzero:		;če polje ni 0, potem se odpre le en memory location (enostavno)
+MOV D, A
+SUB D, gamemirror
+ADD D, gamedisplay
+CMP B, 2		;bolj učinkovit compare,kot če bi za vsako številko
+JE two
+JA three
+MOVB [D], 252	;enka-rumena
+JMP nieksplozije
+two:
+MOVB [D], 241	;dvojka-oranžna
+JMP nieksplozije
+three:
+CMP B, 4
+JE four
+JA five
+MOVB [D], 59	;trojka-modra
+JMP nieksplozije
+four:
+CMP B, 5
+JE five
+MOVB [D], 195	;štirica-vijolična
+JMP nieksplozije
+five:
+CMP B, 6
+JAE six
+MOVB [D], 100 	;petica-rjava
+JMP nieksplozije
+six:
+CMP B, 9
+JE pregledbombe
+MOVB [D], 224	;šestica-rdeča
+JMP nieksplozije
+pregledbombe:
+CMP B, 9
+JE eksplozija
+JNE nieksplozije
+eksplozija:
+MOVB [D], 0
+CALL gameover
+nieksplozije:
+RET
+
+
+zero: 			;register A nosi število polja, in išče okoli sebe 0-le
+MOV D, 0
+MOV B, A
+SUB B, gamemirror
+ADD B, gamedisplay
+MOVB DL, [A] 	;pregled če je vsebina A-ja že 0A (pomembno za rekurzijo)
+CMP D, 10
+JAE end
+MOVB [A], 10
+MOV C, B		;	V (vse spada v vrstico z tekstkom)
+SHL C, 15		;	V
+SHR C, 15		;	V
+MOV D, B		;	V
+SHL D, 11		;	V
+SHR D, 15		;	V
+ADD C, D		;	V
+CMP C, 1 		;sprememba barve v zeleno za 0-le IN zelena šahovnica (boljši izgled)
+JE temna
+MOVB [B], 0x001C
+JNE svetla
+temna:
+MOVB [B], 24
+svetla:
+MOV D, 0
+MOV C, A 		
+SHL C, 12
+CMP C, 0xF000	;Pregled če je izbrana ničla na skrajni desni, če je se izpusti pregled vseh desnih
+JE left:
+right:
+MOV C, A
+INC C
+MOVB DL, [C]
+CMP D, 0
+JNE colorcheck1	;Kličem funkcijo othercheck
+PUSH C			;Če je 0-la jo dam na stack, da kasneje pregledam še za to število če je 0-la
+JE topright
+colorcheck1:
+CALL othercheck
+topright:
+MOV C, A
+CMP C, 0x0DF0
+JB bottomright
+SUB C, 15
+MOVB DL, [C]
+CMP D, 0
+JNE colorcheck2
+PUSH C
+JE bottomright
+colorcheck2:
+CALL othercheck
+bottomright:
+MOV C, A
+CMP C, 0x0ECF
+JA left
+ADD C, 17
+MOVB DL, [C]
+CMP D, 0
+JNE colorcheck3
+PUSH C
+JE left
+colorcheck3:
+CALL othercheck
+left:
+MOV C, A
+SHL C, 12
+CMP C, 0
+JE above
+MOV C, A
+DEC C
+MOVB DL, [C]
+CMP D, 0
+JNE colorcheck4
+PUSH C
+JE topleft
+colorcheck4:
+CALL othercheck
+topleft:
+MOV C, A
+CMP C, 0x0DF0
+JB bottomleft
+SUB C, 17
+MOVB DL, [C]
+CMP D, 0
+JNE colorcheck5
+PUSH C
+JE bottomleft
+colorcheck5:
+CALL othercheck
+bottomleft:
+MOV C, A
+CMP C, 0x0ECF
+JA above
+ADD C, 15
+MOVB DL, [C]
+CMP D, 0
+JNE colorcheck6
+PUSH C
+JE above
+colorcheck6:
+CALL othercheck
+above:
+MOV C, A
+CMP C, 0x0DF0
+JB under
+SUB C, 16
+MOVB DL, [C]
+CMP D, 0
+JNE colorcheck7
+PUSH C
+JE under
+colorcheck7:
+CALL othercheck
+under:
+MOV C, A
+CMP C, 0x0ECF
+JA end
+ADD C, 16
+MOVB DL, [C]
+CMP D, 0
+JNE colorcheck8
+PUSH C
+JE end
+colorcheck8:
+CALL othercheck
+end:
+POP A
+CMP A, 0x0DE0
+JAE zero
+PUSH A
+RET
+
+othercheck:			;pogledam katera barva se nahaja okoli 0-le
+MOV B, 0
+MOVB BL, [C]	;C Kaže na željen naslov, ki ga moramo preverit
+CMP B, 9
+JA return
+MOV B, C	
+SUB B, gamemirror
+ADD B, gamedisplay
+CMP D, 1
+JNE dvojka
+MOVB [B], 252		;1-ka je rumena
+JMP return
+dvojka:
+CMP D, 2
+JNE trojka
+MOVB [B], 241		;2-ka je oranžna
+JMP return
+trojka:
+CMP D, 3
+JNE stirka
+MOVB [B], 59		;3-ka je modra
+JMP return
+stirka:
+CMP D, 4
+JNE petka
+MOVB [B], 195		;4-ka je vijolična
+JMP return
+petka:
+MOVB [B], 100		;5-ka je rjava
+return:
+RET
+
+ggwp:			;funkcija ki pregleda če je uporabnik zmagal, ali pa ne
+MOV D, 0
+MOV A, [bombs]
+MOV B, gamedisplay
+wincondition:
+MOVB CL, [B]
+CMPB CL, 0xB6
+JE increase
+CMPB CL, 0xFF
+JNE noincrease
+increase:
+INC D			;Povečam D, če je na tem mestu belo/sivo polje
+noincrease:
+MOV C, enddisplay
+INC B
+CMP B, C
+JE compare
+JMP wincondition
+compare:
+CMP D, A		;Če belih polj ni enako številu bomb, potem nisi zmagal.
+JNE noteligable
+CALL victory	;igralec je zmagal
+noteligable:
+RET
+
+victory:		;Izpis "You Win!"
+MOV A, win
+MOV B, textrow1
+MOV D, textrow2
+MOV C, 0
+victoryloop:
+MOVB CL, [A]
+INC A
+MOVB [B], CL
+MOVB [D], 0
+INC B
+INC D
+CMP C, 0
+JNE victoryloop
+JMP hlt
+
+gameover:		;Izpis "You Lose!"
+MOV A, lose
+MOV B, textrow1
+MOV D, textrow2
+MOV C, 0
+gameoverloop:
+MOVB CL, [A]
+INC A
+MOVB [B], CL
+MOVB [D], 0
+INC B
+INC D
+CMP C, 0
+JNE gameoverloop
+JMP hlt
+
+addbombs:		;Poveča spremenljivko bombs, na toliko kot jih je
+PUSH A
+MOV A, [bombs]
+INC A
+MOV [bombs], A
+POP A
+RET
+
+
+ORG 0x0DE0
+gamemirror: ;16x16grid ki shranjuje bombe in ostala števila
+ORG 0x0EE0
+textrow1:   ;začetek tekstovnega prikazovalnika
+ORG 0x0EE2
+xaxis:		;za vnos števil zraven x:
+ORG 0x0EF0
+textrow2: 	;začetek druge vrstice tekstovnega prikazovalnika
+ORG 0x0EF2
+yaxis: 		;za vnos števil zraven y:
+ORG 0x0F00
+gamedisplay: ;zaslon
+ORG 0x1000
+enddisplay: ;konec zaslona

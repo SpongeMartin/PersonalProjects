@@ -1,0 +1,722 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>Draw</title>
+<meta charset="UTF-8">
+<style>
+#colortext{
+	top:-15px;
+	left:47%;
+	position:absolute;
+}
+
+#brushes{
+	width:350px;
+	height:900px;
+	float:left;
+}
+
+#brushtext{
+	float:left;
+	clear:left;
+}
+
+#thicktext{
+	float:left;
+}
+
+#form{
+	float:left;
+	clear:left;
+	margin-left:10px;
+}
+
+
+input{
+	float:left;
+	clear:left;
+	margin-right:20px;
+}
+
+#vecarr{
+	float:left;
+	margin-left:40px;
+	margin-top:8px;
+}
+
+#vector, #arrow{
+	margin-bottom:25px;
+	margin-right:7px;
+}	
+
+.brushes{
+	border:1px solid black;
+	float:left;
+	width:130px;
+	height:30px;
+	margin-bottom:10px;
+}
+
+#selectedbrush{
+	border-width:5px;
+}
+
+#solidd{
+	border-top:5px solid black;
+	margin:12px 0px 0px 15px;
+	width:100px;
+	pointer-events: none;
+}
+
+#dashedd{
+	border-top:5px dashed black;
+	margin:12px 0px 0px 15px;
+	width:100px;
+	pointer-events: none;
+}
+
+#circlee{
+	border:4px solid black;
+	margin:3px 0px 0px 55px;
+	border-radius:100%;
+	width:15px;
+	height:15px;
+	pointer-events: none;
+}
+
+#select{
+	float:left;
+	margin:22px 0px 0px 4px;
+}
+
+#undo{
+	display:inline-block;
+	margin-left:60px;
+	margin-top:20px;
+	height:30px;
+	width:30px;
+}
+#redo{
+	display:inline-block;
+	margin-left:10px;
+	margin-top:20px;
+	height:30px;
+	width:30px;
+}
+
+#undoimg{
+	height:inherit;
+	width:inherit;
+}
+
+#canvas {
+display: inline-block;
+box-sizing: border-box;
+border: 1px solid black;
+margin: 15px 0px 0px 0px;
+}
+
+#stickers {
+display: inline-block;
+width: 50px;
+height: 50px;
+}
+
+.sticker {
+display: inline-block;
+box-sizing: border-box;
+width: 50px;
+margin: 2px;
+}
+
+.color{
+display: inline-block;
+box-sizing: border-box;
+width: 48px;
+height: 30px;
+border: 1px solid black;
+margin: 2px 1px 0px 1px;
+}
+
+#colordiv{
+	margin-left:350px;
+}
+
+#underline{
+	width:48px;
+	height:2px;
+	background-color:black;
+	margin-left:351px;
+	transition:margin-left 2s;
+	transition:color 2s;
+}
+
+</style>
+<script>
+var color = "black";
+var pritisk = false;
+var context;
+var canvas;
+var posx;
+var posy;
+var prevy;
+var prevx;
+var initx;
+var inity;
+var sticker;
+var size = 3;
+var selected = "solid";
+var passed;
+var calls;
+var numoflines = 0;
+var lineArray = [];
+var linecallsArray = [];
+var colorArray = [];
+var redocontrol = 0;
+var thicknessArray = [];
+var stopinje;
+var timer = null;
+
+function arrowinput(){
+	var vector = document.getElementById("vector");
+	if (vector.checked == true){
+		document.getElementById("arrow").disabled = false;
+	}else{
+		document.getElementById("arrow").disabled = true;
+	}
+}
+
+function checkbrush(event){
+	selected = event.target.id;
+}
+
+function thickness(){
+	var select = document.getElementById("select");
+	if (select.value == "Thin"){
+		size = 3;
+	}else if (select.value == "Normal"){
+		size = 5;
+	}else{
+		size = 7;
+	}
+}
+
+function stickerDrag(event){
+	sticker = event.target.id;
+}
+
+function stickerOver(event){
+	event.preventDefault();
+}
+
+function stickerDrop(event){
+	var draggedId = document.getElementById(sticker);
+	lineArray[numoflines] = [];
+	lineArray[numoflines][0] = "sticker";
+	lineArray[numoflines][1] = draggedId;
+	lineArray[numoflines][2] = event.layerX-30;
+	lineArray[numoflines][3] = event.layerY-30;
+	lineArray[numoflines][4] = 60;
+	lineArray[numoflines][5] = 60;
+	numoflines++;
+	context.beginPath();
+	context.drawImage(draggedId,event.layerX-30,event.layerY-30,60,60);
+	context.stroke();
+	event.preventDefault();
+}
+
+function assignColor(){
+	var barva = event.target;
+	var text = document.getElementById("textcolor");
+	var underline = document.getElementById("underline");
+	var targetid = barva.id;
+	var num;
+	text.innerText = "";
+	text.style.textTransform = "capitalize";
+	text.innerText = barva.style.backgroundColor;
+	if (barva.style.backgroundColor !="white")
+	text.style.color = barva.style.backgroundColor;
+	color = barva.style.backgroundColor;
+	underline.style.backgroundColor = color;
+	if(targetid.length == 6){
+		num = targetid.charAt(5);
+	}else{
+		num = targetid.charAt(5) + targetid.charAt(6);
+	}
+	/*clearInterval(timer);
+	timer = setInterval(animation, 10);
+	var pos = underline.style.marginLeft;
+	var endpos = (351+(num*50));
+	var firstitteration = true;
+	function animation() {
+		if (firstitteration){
+			underline.style.marginLeft = pos;
+			firstitteration = false;
+		}
+		if (pos == endpos) {
+			clearInterval(timer);
+		} else {
+			if(pos<endpos){
+				pos++; 
+				underline.style.marginLeft = pos+"px"; 
+			}else{
+				pos++; 
+				underline.style.marginLeft = pos+"px"; 
+			}
+		}
+	}*/
+	underline.style.marginLeft = (351 + (num*50))+"px";
+}
+
+function pressing(event){
+	thickness();
+	passed = 0;
+	calls = 0;
+	lineArray[numoflines] = [];
+	initx = event.layerX;
+	inity = event.layerY;
+    prevx = posx;
+    prevy = posy;
+    posx = event.layerX;
+    posy = event.layerY;
+	pritisk = true;
+}
+
+function notpressing(){
+	if (pritisk = true){
+		pritisk = false;
+		var vector = document.getElementById("vector");
+		var arrow = document.getElementById("arrow");
+		if (selected=="circle"){
+			context.beginPath();
+			context.arc(initx,inity,0+posx-initx,0, 2*Math.PI);
+			context.stroke();
+			lineArray[numoflines][calls]="circle";
+			calls++;
+			lineArray[numoflines][calls]=initx;
+			calls++;
+			lineArray[numoflines][calls]=inity;
+			calls++;
+			lineArray[numoflines][calls]=0+posx-initx;
+			calls++;
+			lineArray[numoflines][calls]=0;
+			calls++;
+			lineArray[numoflines][calls]=2*Math.PI;
+		}else if (selected=="solid" && vector.checked == true){
+			context.beginPath();
+			context.moveTo(initx,inity);
+			context.lineTo(posx,posy);
+			context.stroke();
+			lineArray[numoflines][calls]=initx;
+			calls++;
+			lineArray[numoflines][calls]=inity;
+			calls++;
+			lineArray[numoflines][calls]=posx;
+			calls++;
+			lineArray[numoflines][calls]=posy;
+			calls++;
+			if (arrow.checked == true){
+				var stopinje = Math.atan((posy-inity)/(posx-initx))*180/Math.PI;
+				context.beginPath();
+				context.moveTo(posx,posy);
+				lineArray[numoflines][calls]=posx;
+				calls++;
+				lineArray[numoflines][calls]=posy;
+				calls++;
+				if(initx < posx && inity > posy){
+					lineArray[numoflines][calls]=posx-22-(stopinje/2.7);
+					calls++;
+					lineArray[numoflines][calls]=posy+10-(stopinje/3.7);
+					calls++;
+					lineArray[numoflines][calls]=posx;
+					calls++;
+					lineArray[numoflines][calls]=posy;
+					calls++;
+					lineArray[numoflines][calls]=posx-22-(stopinje/8.7);
+					calls++;
+					lineArray[numoflines][calls]=posy-10-(stopinje/2.0);
+					calls++;
+				}else if(initx < posx && inity < posy){
+					lineArray[numoflines][calls]=posx-22+(stopinje/8.7);
+					calls++;
+					lineArray[numoflines][calls]=posy+10-(stopinje/2.0);
+					calls++;
+					lineArray[numoflines][calls]=posx;
+					calls++;
+					lineArray[numoflines][calls]=posy;
+					calls++;
+					lineArray[numoflines][calls]=posx-22+(stopinje/2.7);
+					calls++;
+					lineArray[numoflines][calls]=posy-10-(stopinje/3.7);
+					calls++;
+				}else if(initx > posx && inity > posy){
+					lineArray[numoflines][calls]=posx+22-(stopinje/2.7);
+					calls++;
+					lineArray[numoflines][calls]=posy+10+(stopinje/3.7);
+					calls++;
+					lineArray[numoflines][calls]=posx;
+					calls++;
+					lineArray[numoflines][calls]=posy;
+					calls++;
+					lineArray[numoflines][calls]=posx+22-(stopinje/8.2);
+					calls++;
+					lineArray[numoflines][calls]=posy-10+(stopinje/2.0);
+					calls++;
+				}else if(initx > posx && inity < posy){
+					lineArray[numoflines][calls]=posx+22+(stopinje/8.7);
+					calls++;
+					lineArray[numoflines][calls]=posy+10+(stopinje/2.0);
+					calls++;
+					lineArray[numoflines][calls]=posx;
+					calls++;
+					lineArray[numoflines][calls]=posy;
+					calls++;
+					lineArray[numoflines][calls]=posx+22+(stopinje/2.7);
+					calls++;
+					lineArray[numoflines][calls]=posy-10+(stopinje/3.7);
+					calls++;
+				}
+				context.stroke();
+			}
+		}else if(selected=="dashed" && vector.checked == true){
+			context.beginPath();
+			recalldrawing();
+			context.beginPath();
+			context.lineWidth = size;
+			context.strokeStyle = color;
+			lineArray[numoflines][calls]="dashed";
+			calls++;
+			context.setLineDash([10,7]);
+			context.moveTo(initx,inity);
+			lineArray[numoflines][calls]=initx;
+			calls++;
+			lineArray[numoflines][calls]=inity;
+			calls++;
+			context.lineTo(posx,posy);
+			lineArray[numoflines][calls]=posx;
+			calls++;
+			lineArray[numoflines][calls]=posy;
+			calls++;
+			context.stroke();
+			if(arrow.checked == true){
+				lineArray[numoflines][calls]="arrow";
+				calls++;
+				lineArray[numoflines][calls]=posx;
+				calls++;
+				lineArray[numoflines][calls]=posy;
+				calls++;
+				stopinje = Math.atan((posy-inity)/(posx-initx))*180/Math.PI;
+				context.beginPath();
+				context.moveTo(posx,posy);
+				context.setLineDash([0,0]);
+				if(initx < posx && inity > posy){
+					lineArray[numoflines][calls]=posx-22-(stopinje/2.7);
+					calls++;
+					lineArray[numoflines][calls]=posy+10-(stopinje/3.7);
+					calls++;
+					lineArray[numoflines][calls]=posx;
+					calls++;
+					lineArray[numoflines][calls]=posy;
+					calls++;
+					lineArray[numoflines][calls]=posx-22-(stopinje/8.7);
+					calls++;
+					lineArray[numoflines][calls]=posy-10-(stopinje/2.0);
+					calls++;
+				}else if(initx < posx && inity < posy){
+					lineArray[numoflines][calls]=posx-22+(stopinje/8.7);
+					calls++;
+					lineArray[numoflines][calls]=posy+10-(stopinje/2.0);
+					calls++;
+					lineArray[numoflines][calls]=posx;
+					calls++;
+					lineArray[numoflines][calls]=posy;
+					calls++;
+					lineArray[numoflines][calls]=posx-22+(stopinje/2.7);
+					calls++;
+					lineArray[numoflines][calls]=posy-10-(stopinje/3.7);
+					calls++;
+				}else if(initx > posx && inity > posy){
+					lineArray[numoflines][calls]=posx+22-(stopinje/2.7);
+					calls++;
+					lineArray[numoflines][calls]=posy+10+(stopinje/3.7);
+					calls++;
+					lineArray[numoflines][calls]=posx;
+					calls++;
+					lineArray[numoflines][calls]=posy;
+					calls++;
+					lineArray[numoflines][calls]=posx+22-(stopinje/8.2);
+					calls++;
+					lineArray[numoflines][calls]=posy-10+(stopinje/2.0);
+					calls++;
+				}else if(initx > posx && inity < posy){
+					lineArray[numoflines][calls]=posx+22+(stopinje/8.7);
+					calls++;
+					lineArray[numoflines][calls]=posy+10+(stopinje/2.0);
+					calls++;
+					lineArray[numoflines][calls]=posx;
+					calls++;
+					lineArray[numoflines][calls]=posy;
+					calls++;
+					lineArray[numoflines][calls]=posx+22+(stopinje/2.7);
+					calls++;
+					lineArray[numoflines][calls]=posy-10+(stopinje/3.7);
+					calls++;
+				}
+					context.stroke();
+			}
+		}
+		linecallsArray[numoflines] = calls;
+		numoflines++;	
+		recalldrawing()
+	}
+}
+
+function recalldrawing(){
+	context.clearRect(0,0,800,600);
+	for (var i=0;i<numoflines;i++){
+		context.strokeStyle = colorArray[i];
+		context.lineWidth = thicknessArray[i];
+		var howmany = linecallsArray[i];
+		if(lineArray[i][0]=="sticker"){
+			context.beginPath();
+			context.drawImage(lineArray[i][1],lineArray[i][2],lineArray[i][3],lineArray[i][4],lineArray[i][5]);
+			context.stroke();
+			event.preventDefault();
+		}else if(lineArray[i][0]=="circle"){
+			context.beginPath();
+			context.arc(lineArray[i][1],lineArray[i][2],lineArray[i][3],lineArray[i][4],lineArray[i][5]);
+			context.stroke();
+		}else if(lineArray[i][0]=="dashed"){
+			context.setLineDash([10,7]);
+			context.beginPath();
+			context.moveTo(lineArray[i][1],lineArray[i][2]);
+			context.lineTo(lineArray[i][3],lineArray[i][4]);
+			context.stroke();
+			if(lineArray[i][5] == "arrow"){
+				context.setLineDash([0,0]);
+				context.beginPath();
+				context.moveTo(lineArray[i][6],lineArray[i][7]);
+				context.lineTo(lineArray[i][8],lineArray[i][9]);
+				context.moveTo(lineArray[i][10],lineArray[i][11])
+				context.lineTo(lineArray[i][12],lineArray[i][13]);
+				context.stroke();
+			}
+			context.setLineDash([0,0]);
+		}else{
+			for (var j=0;j<howmany;j+=4){
+				context.beginPath();
+				context.moveTo(lineArray[i][j],lineArray[i][j+1]);
+				context.lineTo(lineArray[i][j+2],lineArray[i][j+3]);
+				context.stroke();
+			}
+		}
+	}
+}
+
+function undo(){
+	if(numoflines>0){
+		numoflines--;
+		redocontrol--;
+		recalldrawing();
+	}
+}
+
+function redo(){
+	if(redocontrol<0){
+		numoflines++;
+		redocontrol++;
+		recalldrawing();
+	}
+}
+
+function stop(){
+	pritisk = false;
+	recalldrawing();
+}
+
+function canvasDrawing(event){
+	if (pritisk){
+		var vector = document.getElementById("vector");
+		var arrow = document.getElementById("arrow");
+		context.lineWidth = size;
+		context.strokeStyle = color;
+		colorArray[numoflines] = color;
+		thicknessArray[numoflines] = size;
+		prevx = posx;
+		prevy = posy;
+		posx = event.layerX;
+		posy = event.layerY;
+		if (selected == "solid" && vector.checked == false){
+			context.beginPath();
+			context.moveTo(prevx,prevy);
+			context.lineTo(posx,posy);
+			lineArray[numoflines][calls]=prevx;
+			calls++;
+			lineArray[numoflines][calls]=prevy;
+			calls++;
+			lineArray[numoflines][calls]=posx;
+			calls++;
+			lineArray[numoflines][calls]=posy;
+			calls++;
+			context.stroke();
+		}else if (selected == "dashed" && vector.checked == false){
+			passed++;
+			context.beginPath();
+			if(passed < 10){
+				context.moveTo(prevx,prevy);
+				context.lineTo(posx,posy);
+				lineArray[numoflines][calls]=prevx;
+				calls++;
+				lineArray[numoflines][calls]=prevy;
+				calls++;
+				lineArray[numoflines][calls]=posx;
+				calls++;
+				lineArray[numoflines][calls]=posy;
+				calls++;
+			} else if(passed == 20){
+				passed = 0;
+				calls+=4;
+			}
+			context.stroke();
+		}else if (selected == "circle"){
+			context.beginPath();
+			recalldrawing();
+			context.beginPath();
+			context.lineWidth = size;
+			context.strokeStyle = color;
+			context.arc(initx,inity,0+posx-initx,0, 2*Math.PI);
+			context.stroke();
+		}else if (selected == "solid" && vector.checked == true){
+			context.beginPath();
+			recalldrawing();
+			context.beginPath();
+			context.lineWidth = size;
+			context.strokeStyle = color;
+			context.moveTo(initx,inity);
+			context.lineTo(posx,posy);
+			context.stroke();
+			if(arrow.checked == true){
+				stopinje = Math.atan((posy-inity)/(posx-initx))*180/Math.PI;
+				context.beginPath();
+				context.moveTo(posx,posy);
+				if(initx < posx && inity > posy){
+					context.lineTo(posx-22-(stopinje/2.7),posy+10-(stopinje/3.7));
+					context.moveTo(posx,posy);
+					context.lineTo(posx-22-(stopinje/8.7),posy-10-(stopinje/2.0));
+				}else if(initx < posx && inity < posy){
+					context.lineTo(posx-22+(stopinje/8.7),posy+10-(stopinje/2.0)); //spodnja
+					context.moveTo(posx,posy);
+					context.lineTo(posx-22+(stopinje/2.7),posy-10-(stopinje/3.7));//zgornja
+				}else if(initx > posx && inity > posy){
+					context.lineTo(posx+22-(stopinje/2.7),posy+10+(stopinje/3.7));
+					context.moveTo(posx,posy);
+					context.lineTo(posx+22-(stopinje/8.2),posy-10+(stopinje/2.0));
+				}else if(initx > posx && inity < posy){
+					context.lineTo(posx+22+(stopinje/8.7),posy+10+(stopinje/2.0));
+					context.moveTo(posx,posy);
+					context.lineTo(posx+22+(stopinje/2.7),posy-10+(stopinje/3.7));
+				}
+				context.stroke();
+			}
+		}else if (selected == "dashed" && vector.checked == true){
+			context.beginPath();
+			recalldrawing();
+			context.beginPath();
+			context.lineWidth = size;
+			context.strokeStyle = color;
+			context.setLineDash([10,7]);
+			context.moveTo(initx,inity);
+			context.lineTo(posx,posy);
+			context.stroke();
+			context.setLineDash([0,0]);
+			if(arrow.checked == true){
+				stopinje = Math.atan((posy-inity)/(posx-initx))*180/Math.PI;
+				context.beginPath();
+				context.moveTo(posx,posy);
+				context.setLineDash([0,0]);
+				if(initx < posx && inity > posy){
+					context.lineTo(posx-22-(stopinje/2.7),posy+10-(stopinje/3.7));
+					context.moveTo(posx,posy);
+					context.lineTo(posx-22-(stopinje/8.7),posy-10-(stopinje/2.0));
+				}else if(initx < posx && inity < posy){
+					context.lineTo(posx-22+(stopinje/8.7),posy+10-(stopinje/2.0)); //spodnja
+					context.moveTo(posx,posy);
+					context.lineTo(posx-22+(stopinje/2.7),posy-10-(stopinje/3.7));//zgornja
+				}else if(initx > posx && inity > posy){
+					context.lineTo(posx+22-(stopinje/2.7),posy+10+(stopinje/3.7));
+					context.moveTo(posx,posy);
+					context.lineTo(posx+22-(stopinje/8.2),posy-10+(stopinje/2.0));
+				}else if(initx > posx && inity < posy){
+					context.lineTo(posx+22+(stopinje/8.7),posy+10+(stopinje/2.0));
+					context.moveTo(posx,posy);
+					context.lineTo(posx+22+(stopinje/2.7),posy-10+(stopinje/3.7));
+				}
+				context.stroke();
+			}
+		}
+	}
+}
+
+function init(){
+	canvas = document.getElementById("canvas");
+	context = canvas.getContext("2d");
+}
+</script>
+</head>
+<body onload="init()">
+<div id="colortext">
+<h3 id="textcolor">Black</h3>
+</div>
+<div id="brushes">
+<h3 id="thicktext">Sizes:</h3>
+<select id="select">
+<option>Thin</option>
+<option>Normal</option>
+<option>Thick</option>
+</select>
+<div id="undo" onclick="undo()"><img id="undoimg" alt="Undo" src="undo.jpg"></div>
+<div id="redo" onclick="redo()"><img id="undoimg" alt="Redo" src="redo.jpg"></div>
+<h3 id="brushtext">Brushes:</h3>
+<form id="form">
+  <input type="radio" id="solid" name="brushes" onclick="checkbrush(event)" checked="checked">
+  <label for="solid"><div class="brushes"><div id="solidd"></div></div></label><br>
+  <input type="radio" id="dashed" name="brushes" onclick="checkbrush(event)">
+  <label for="dashed"><div class="brushes"><div id="dashedd"></div></div></label><br>
+  <input type="radio" id="circle" name="brushes" onclick="checkbrush(event)">
+  <label for="circle"><div class="brushes"><div id="circlee"></div></div></label><br>  
+</form>
+<form id="vecarr">
+	<input type="checkbox" id="vector" name="vecarr" onclick="arrowinput()">
+	<label for="vector">Vector</label><br><br>
+	<input type="checkbox" id="arrow" name="vecarr" disabled>
+	<label for="arrow">Arrow</label><br>
+</form>
+</div>
+<canvas id="canvas" width="800" height="600" onmousedown="pressing(event)" onmouseout="stop()" onmouseup="notpressing()" onmousemove="canvasDrawing(event)" ondragover="stickerOver(event)" ondrop="stickerDrop(event)"></canvas>
+<div id="stickers">
+<img id="stick1" class="sticker" src="http://clipart-library.com/data_images/487831.png" ondragstart="stickerDrag(event)">
+<img id="stick2" class="sticker" src="http://clipart-library.com/data_images/487787.png" ondragstart="stickerDrag(event)">
+<img id="stick3" class="sticker" src="http://clipart-library.com/data_images/487743.png" ondragstart="stickerDrag(event)">
+<img id="stick4" class="sticker" src="http://clipart-library.com/data_images/487741.png" ondragstart="stickerDrag(event)">
+<img id="stick5" class="sticker" src="http://clipart-library.com/data_images/487815.png" ondragstart="stickerDrag(event)">
+<img id="stick6" class="sticker" src="http://clipart-library.com/data_images/402767.png" ondragstart="stickerDrag(event)">
+<img id="stick7" class="sticker" src="http://clipart-library.com/data_images/363964.gif" ondragstart="stickerDrag(event)">
+<img id="stick8" class="sticker" src="http://clipart-library.com/data_images/487785.png" ondragstart="stickerDrag(event)">
+<img id="stick9" class="sticker" src="http://clipart-library.com/data_images/487810.jpg" ondragstart="stickerDrag(event)">
+<img id="stick10" class="sticker" src="http://clipart-library.com/image_gallery/464509.png" ondragstart="stickerDrag(event)">
+<img id="stick11" class="sticker" src="http://clipart-library.com/image_gallery/464541.jpg" ondragstart="stickerDrag(event)">
+</div>
+<div id="colordiv">
+<script>
+var colorNames = ["black", "gray", "silver", "white", "maroon", "red", "olive", "yellow", "green",
+"lime", "teal", "aqua", "navy", "blue", "purple", "fuchsia"];
+for (var i = 0; i < 16; i++) {
+document.write(`<div id="color${i}" class="color" style="background-color:
+${colorNames[i]}" onclick="assignColor(event)"></div>`);
+}
+init();
+</script>
+</div>
+<div id="underline"></div>
+</body>
+</html>

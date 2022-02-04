@@ -1,0 +1,438 @@
+<!DOCTYPE html>
+<html>
+<title>Starsweeper</title>
+<head>
+<link rel="preconnect" href="https://fonts.gstatic.com">
+<link href="https://fonts.googleapis.com/css2?family=Yellowtail&display=swap" rel="stylesheet">
+<style>
+html { 
+	background: url("galaxy5.jpg") no-repeat center center fixed; 
+	-webkit-background-size: cover;
+	-moz-background-size: cover;
+	-o-background-size: cover;
+	background-size: cover;
+}
+
+header{
+	position:relative;
+	bottom:45px;
+	padding-left:50px;
+	font-size:30px;
+	font-family: 'Yellowtail', cursive;
+	background-image:linear-gradient(to right,black,rgb(102,153,255));
+	color:rgb(255,255,153);
+}
+
+#star{
+	width:40px;
+	height:40px;
+	display:block;
+	float:left;
+	clear:left;
+	margin-top:5px;
+	animation-name: rotation;
+    animation-duration: 4s;
+}
+
+@keyframes rotation{
+	from{transform: rotate(0deg);}
+	to{transform: rotate(720deg);}
+}
+
+#gamebox {
+	display:block;
+	background-color:rgba(0, 0, 179,0.8);
+	margin:auto;
+	margin-top:0px;
+	color:white;
+}
+
+.small {
+	width:500px;
+	height:500px;
+}
+
+.big {
+	width:688px;
+	height:688px;
+}
+
+.huge {
+	width:704px;
+	height:704px;
+}
+
+.easy {
+	height:50px;
+	width:50px;
+	margin:0px;
+	padding:0px;
+	font-size:40px;
+}
+.medium{
+	width:43px;
+	height:43px;
+	margin:0px;
+	padding:0px;
+	font-size:40px;
+}
+
+.hard{
+	width:32px;
+	height:32px;
+	margin:0px;
+	padding:0px;
+	font-size:28px;
+}
+
+
+#sidebox{
+	display:block;
+	width:200px;
+	height:200px;
+	float:left;
+	background-color:rgba(0, 0, 179,0.8);
+	margin-left:-210px;
+	transition: margin-left 2s;
+}
+
+#sidebox:hover{
+	margin-left:10px;
+}
+
+#sidebox div img{
+	width:25px;
+	height:100%;
+	float:right;
+	clear:right;
+	margin-right:3px;
+}
+
+#sidebox div {
+	background-color:inherit;
+	width:50px;
+	height:50px;
+	margin-left:200px;
+}
+
+#sidebox p{
+	margin-top:-45px;
+	font-size:22px;
+	text-align:center;
+	color:rgb(255,255,153);
+	font-family:Arial, Helvetica, sans-serif;
+}
+
+#pointbox{
+	width:250px;
+	height:150px;
+	float:right;
+	background-color:rgba(0, 0, 179,0.8);
+	color:rgb(255, 153, 204);
+	font-family: Arial, Helvetica, sans-serif;
+	font-size:28px;
+	text-align:center;
+	position:fixed;
+	left:80%;
+	top: 40%;
+	z-index:-1;
+}
+
+#endbox{
+	color:rgb(255, 0, 128);
+	text-align:center;
+	margin:auto;
+	width:50%
+	height:10%
+	margin-top:-50px;
+	opacity:0;
+	transition:opacity 1s;
+}
+
+#endbox h2{
+	font-size:30px;
+	margin-top:-45px;
+	letter-spacing:2px;
+	font-family: Arial ,Helvetica ,sans-serif;
+}
+
+.difficulty{
+	margin:auto;
+	background-image:linear-gradient(to right,black,rgb(102,153,255));
+	color:rgb(255,255,153);
+	width:70px;
+	height:30px;
+	border-style:none;
+	font-family: Arial, Helvetica, sans-serif;
+	font-weight:bold;
+	display:block;
+	margin-bottom:20px;
+}
+
+button{
+	background-color:rgba(175,175,190,0);
+	font-family:Arial,Helvetica,sans-serif;
+	color:rgb(255,255,153);
+}
+</style>
+<script src="minesweeper.js"></script>
+<script>
+var minefield = null;
+var points = 0;
+var buttons = null;
+var size;
+function newGame(x,y,z) {
+	size = x;
+	minefield = new Minefield(x, y, z);
+	print();
+	//var game = document.getElementById("gamebox");
+	createBox(x,y);
+	gameover();
+	points = 0;
+	pointdisplay();
+	timer();
+}
+
+function gameover(){
+	var end = document.getElementById("endbox");
+	var game = document.getElementById("gamebox");
+	var para = document.createElement("H2");
+	var status = document.createTextNode("Game Over");
+	para.appendChild(status);
+	setTimeout(function(){ 
+	end.innerText="";
+	end.appendChild(para);
+	end.style.color = "rgb(255, 0, 128)"; }, 2000);
+	end.style.opacity = "0";
+}
+
+function check() {
+	if (buttons[0][0].className == "easy" && minefield.veiled == 12 && minefield.explosions == 0){
+		calculate();
+		endscreen();
+		disable();
+	}else if (buttons[0][0].className == "medium" && minefield.veiled == 40 && minefield.explosions == 0){
+		calculate();
+		endscreen();
+		diasble();
+	}else if (buttons[0][0].className == "hard" && minefield.veiled == 99 && minefield.explosions == 0){
+		calculate();
+		endscreen();
+		disable();
+	}
+}
+
+function pointdisplay(){
+	var pt = document.getElementById("points");
+	pt.innerText= points.toString()+" Points";
+}
+
+function endscreen(){
+	var end = document.getElementById("endbox");
+	var para = document.createElement("H2");
+	var status = document.createTextNode("You Win!");
+	para.appendChild(status);
+	end.innerText="";
+	end.appendChild(para);
+	end.style.color = "MediumSeaGreen";
+	end.style.opacity = "0.9";
+	clearInterval(id);
+}
+	
+
+function print() {
+	minefield.toString();
+}
+
+function disable(){
+	for(var i=0;i<size;i++){
+		for(var j=0;j<size;j++){
+			buttons[i][j].disabled=true;
+		}
+	}
+}
+
+function createBox(x,y){
+	var div = document.getElementById("gamebox");
+	div.innerHTML="";
+	buttons = new Array(x);
+	for (var i=0;i<x;i++){
+		buttons[i]=new Array(y);
+		for (var j=0;j<y;j++){
+			buttons[i][j] = document.createElement("BUTTON");
+			buttons[i][j].innerText="";
+			buttons[i][j].setAttribute("onmousedown","Whichbutton(event,"+(i.toString())+","+(j.toString())+")");
+			var img = document.createElement("IMG");
+			img.setAttribute("src","blank.png");
+			img.style.width = "80%";
+			img.style.height = "80%";
+			var slika = document.createElement("DIV");
+			slika.appendChild(img);
+			buttons[i][j].appendChild(slika);
+			div.appendChild(buttons[i][j]);
+			if (x==10) {
+				buttons[i][j].setAttribute("class","easy");
+				div.setAttribute("class","small");
+			}
+			else if (x==16){
+				buttons[i][j].setAttribute("class","medium");
+				div.setAttribute("class","big");
+			}
+			else{
+				buttons[i][j].setAttribute("class","hard");
+				div.setAttribute("class","huge");
+			}
+		}
+	}
+}
+
+var id;
+var fseconds;
+var sseconds;
+var minutes;
+function timer(){
+	fseconds = 0;
+	sseconds = 0;
+	minutes = 0;
+	var fsecondtext = document.getElementById("firstseconds");
+	var ssecondtext = document.getElementById("secondseconds");
+	var minutetext = document.getElementById("minutes");
+	fsecondtext.innerText=fseconds;
+	ssecondtext.innerText=sseconds;
+	minutetext.innerText=minutes;
+	clearInterval(id);
+	id = setInterval(sec,1000);
+	function sec(){
+		if (fseconds == 9 && sseconds == 5) {
+			fseconds = 0;
+			fsecondtext.innerText = fseconds;
+			sseconds = 0;
+			ssecondtext.innerText = sseconds;
+			minutes++;
+			minutetext.innerText = minutes;
+		}else if(fseconds == 9 && sseconds != 5){
+			sseconds++;
+			ssecondtext.innerText = sseconds;
+			fseconds = 0;
+			fsecondtext.innerText = fseconds;
+		}else{
+			fseconds++;
+			fsecondtext.innerText = fseconds;
+		}
+	}
+}
+
+
+function calculate(){
+	var tenths = fseconds + (sseconds*13) + (minutes*85);
+	points = points - (tenths*3);
+	pointdisplay();
+}
+
+function Whichbutton(event,x,y){
+	var div = document.createElement("DIV");
+	var img = document.createElement("IMG");
+	img.style.width="80%";
+	img.style.height="80%";
+	if (event.button == 1 && buttons[x][y].id != "flag" && buttons[x][y].id != "unveiled" || event.button == 2 && buttons[x][y].id != "flag" && buttons[x][y].id != "unveiled"){
+		buttons[x][y].innerText= "";
+		img.setAttribute("src","Starflag.png");
+		div.appendChild(img);
+		buttons[x][y].appendChild(div);
+		buttons[x][y].setAttribute("id","flag");
+	} else if (event.button == 1 && buttons[x][y].id == "flag" || event.button == 2 && buttons[x][y].id == "flag"){
+		buttons[x][y].innerText="";
+		img.setAttribute("src","blank.png");
+		div.appendChild(img);
+		buttons[x][y].appendChild(div);
+		buttons[x][y].setAttribute("id","");
+	}
+	if (event.button == 0){
+		leftclick(y,x)
+	}
+}
+
+function leftclick(x,y){
+	minefield.unveil(x,y);
+	print();
+	var string = minefield.toString();
+	var end = document.getElementById("endbox");
+	points = 0;
+	for (var i=0, z=0;i<size;i++,z++){
+		for (var j=0;j<size;j++, z++){
+			if (string.charAt(z)!="."){
+				var div = document.createElement("DIV");
+				var img = document.createElement("IMG");
+				img.style.width = "80%";
+				img.style.height = "80%";
+				buttons[i][j].innerText= "";
+				buttons[i][j].setAttribute("id","unveiled");
+				buttons[i][j].appendChild(document.createTextNode(string.charAt(z)));
+				if (buttons[i][j].innerText=="x"){
+					buttons[i][j].innerText= "";
+					img.setAttribute("src","Star.png");
+					div.appendChild(img);
+					buttons[i][j].appendChild(div);
+					points = points - 2000;
+					endbox.style.opacity="0.9";
+					disable();
+					calculate();
+					clearInterval(id);
+				}else if (buttons[i][j].innerText=="0"){
+					buttons[i][j].innerText= "0";
+					points = points + 5;
+				}else if (buttons[i][j].innerText=="1"){
+					buttons[i][j].innerText= "1";
+					points = points + 10;
+				}else if (buttons[i][j].innerText=="2"){
+					buttons[i][j].innerText= "2";
+					points = points + 20;
+				}else if (buttons[i][j].innerText=="3"){
+					buttons[i][j].innerText= "3";
+					points = points + 30;
+				}else if (buttons[i][j].innerText=="4"){
+					buttons[i][j].innerText= "4";
+					points = points + 40;
+				}else if (buttons[i][j].innerText=="5"){
+					buttons[i][j].innerText= "5";
+					points = points + 50;
+				}else if (buttons[i][j].innerText=="6"){
+					buttons[i][j].innerText= "6";
+					points = points + 60;
+				}else if (buttons[i][j].innerText=="7"){
+					buttons[i][j].innerText= "7";
+					points = points + 70;
+				}else if (buttons[i][j].innerText=="8"){
+					buttons[i][j].innerText= "8";
+					points = points + 80;
+				}
+			}
+		}
+	}
+	pointdisplay();
+	check();
+}
+</script>
+</head>
+<body>
+<header>
+<h1>Starsweeper<img src="Star.png" id="star"></h1>
+</header>
+<div id ="endbox"><h2>Game Over</h2></div>
+<div id="sidebox">
+<div>
+<img src="Arrow.png">
+</div>
+<p style="color:rgb(255, 153, 204);">New game</p>
+<input type="button" value="Easy" onclick="newGame(10,10,12)" class="difficulty" id="easy">
+<input type="button" value="Medium" onclick="newGame(16,16,40)" class="difficulty" id="medium">
+<input type="button" value="Hard" onclick="newGame(22,22,99)" class="difficulty" id="hard">
+</div>
+<div id="pointbox"><p id="points"></p> <span>Time:</span> <span id="minutes">0</span><span>:</span><span id="secondseconds">0</span><span id="firstseconds">0</span></div>
+<div id="gamebox"></div>
+<div id="score"></div>
+<script>
+newGame(10,10,12);
+</script>
+</body>
+</html>

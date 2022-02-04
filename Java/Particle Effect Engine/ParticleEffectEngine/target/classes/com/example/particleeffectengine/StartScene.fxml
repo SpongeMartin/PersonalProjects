@@ -1,0 +1,35 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import javafx.scene.control.*?>
+<?import javafx.scene.layout.*?>
+<?import javafx.scene.text.*?>
+
+<AnchorPane maxHeight="-Infinity" maxWidth="-Infinity" minHeight="-Infinity" minWidth="-Infinity" prefHeight="600.0" prefWidth="800.0" style="-fx-background-color: #665c5c;" xmlns="http://javafx.com/javafx/11.0.2" xmlns:fx="http://javafx.com/fxml/1" fx:controller="com.example.particleeffectengine.StartScene">
+   <children>
+      <Button layoutX="355.0" layoutY="431.0" mnemonicParsing="false" onAction="#start" prefHeight="48.0" prefWidth="89.0" style="-fx-background-color: #0dff00;" text="Start" textFill="#665c5c" />
+      <ChoiceBox fx:id="choicebox" layoutX="132.0" layoutY="301.0" prefWidth="150.0" style="-fx-background-color: #0dff00;" />
+      <TextField fx:id="posx" layoutX="488.0" layoutY="288.0" style="-fx-background-color: #0dff00;" text="400" />
+      <TextField fx:id="particlesemittedps" layoutX="488.0" layoutY="248.0" style="-fx-background-color: #0dff00;" text="15" />
+      <TextField fx:id="ttl" layoutX="488.0" layoutY="208.0" style="-fx-background-color: #0dff00;" text="3000" />
+      <TextField fx:id="nop" layoutX="488.0" layoutY="165.0" style="-fx-background-color: #0dff00;" text="500" />
+      <TextField fx:id="sceneheight" layoutX="133.0" layoutY="251.0" style="-fx-background-color: #0dff00;" text="600" />
+      <TextField fx:id="scenewidth" layoutX="133.0" layoutY="208.0" style="-fx-background-color: #0dff00;" text="800" />
+      <CheckBox fx:id="sequential" disable="true" layoutX="133.0" layoutY="169.0" mnemonicParsing="false" onAction="#pressSequential" selected="true" style="te: #0dff00;" text="Sequential" textFill="#0dff00" />
+      <CheckBox fx:id="parallel" disable="true" layoutX="222.0" layoutY="169.0" mnemonicParsing="false" onAction="#pressParallel" text="Parallel" textFill="#0dff00" />
+      <Text fill="#0dff00" layoutX="133.0" layoutY="161.0" strokeType="OUTSIDE" strokeWidth="0.0" text="Run mode" />
+      <Text fill="#0dff00" layoutX="133.0" layoutY="204.0" strokeType="OUTSIDE" strokeWidth="0.0" text="Window width" />
+      <Text fill="#0dff00" layoutX="132.0" layoutY="247.0" strokeType="OUTSIDE" strokeWidth="0.0" text="Window height" />
+      <Text fill="#0dff00" layoutX="133.0" layoutY="295.0" strokeType="OUTSIDE" strokeWidth="0.0" text="Type of emission" />
+      <Text fill="#0dff00" layoutX="488.0" layoutY="161.0" strokeType="OUTSIDE" strokeWidth="0.0" text="Number of particles" />
+      <Text fill="#0dff00" layoutX="488.0" layoutY="247.0" strokeType="OUTSIDE" strokeWidth="0.0" text="Emissions per second" />
+      <Text fill="#0dff00" layoutX="488.0" layoutY="287.0" strokeType="OUTSIDE" strokeWidth="0.0" text="X position of emitter" />
+      <Text fill="#0dff00" layoutX="488.0" layoutY="327.0" strokeType="OUTSIDE" strokeWidth="0.0" text="Y position of emitter" />
+      <Text fill="#0dff00" layoutX="488.0" layoutY="204.0" strokeType="OUTSIDE" strokeWidth="0.0" text="Particle lifetime" />
+      <TextField fx:id="posy" layoutX="488.0" layoutY="330.0" style="-fx-background-color: #0dff00;" text="300" />
+      <Text fill="#0dff00" layoutX="215.0" layoutY="71.0" strokeType="OUTSIDE" strokeWidth="0.0" text="Particle effect engine ">
+         <font>
+            <Font name="System Bold" size="36.0" />
+         </font>
+      </Text>
+   </children>
+</AnchorPane>
