@@ -4,7 +4,7 @@
 <?import javafx.scene.layout.*?>
 <?import javafx.scene.text.*?>
 
-<AnchorPane maxHeight="-Infinity" maxWidth="-Infinity" minHeight="-Infinity" minWidth="-Infinity" prefHeight="600.0" prefWidth="800.0" style="-fx-background-color: #665c5c;" xmlns="http://javafx.com/javafx/11.0.2" xmlns:fx="http://javafx.com/fxml/1" fx:controller="com.example.particleeffectengine.StartScene">
+<AnchorPane maxHeight="-Infinity" maxWidth="-Infinity" minHeight="-Infinity" minWidth="-Infinity" prefHeight="600.0" prefWidth="800.0" style="-fx-background-color: #665c5c;" xmlns="http://javafx.com/javafx/11.0.2" xmlns:fx="http://javafx.com/fxml/1" fx:controller="distributedpee.StartScene">
    <children>
       <Button layoutX="355.0" layoutY="431.0" mnemonicParsing="false" onAction="#start" prefHeight="48.0" prefWidth="89.0" style="-fx-background-color: #0dff00;" text="Start" textFill="#665c5c" />
       <ChoiceBox fx:id="choicebox" layoutX="132.0" layoutY="301.0" prefWidth="150.0" style="-fx-background-color: #0dff00;" />

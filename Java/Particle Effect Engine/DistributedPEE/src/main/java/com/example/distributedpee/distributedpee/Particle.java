@@ -1,4 +1,4 @@
-package com.example.particleeffectengine;
+package distributedpee;
 
 import javafx.geometry.Point2D;
 import javafx.scene.canvas.GraphicsContext;
@@ -23,7 +23,7 @@ public class Particle {
         this.x = x;
         this.y = y;
         radius = 5;
-        weight = 7;
+        weight = 5;
         spray();
         alreadyCollided=false;
     }
@@ -96,7 +96,7 @@ public class Particle {
             vector = new Point2D(-vector.getX() * friction,vector.getY()*0.95);
             x=Main.windowWidth - (radius);
         } else if (nextX < 0 + (radius / 2)) { //LEFT WALL
-            vector = new Point2D(-vector.getX()*friction, vector.getY()*0.95);
+            vector = new Point2D(-vector.getX()*friction, vector.getY()*0.9);
             x=(radius/2);
         } else x = nextX;
     }

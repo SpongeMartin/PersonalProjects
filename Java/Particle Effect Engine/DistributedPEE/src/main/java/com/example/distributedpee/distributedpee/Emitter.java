@@ -1,7 +1,8 @@
-package com.example.particleeffectengine;
+package distributedpee;
 
 import java.util.ArrayList;
 import java.util.List;
+
 
 public class Emitter {
     public int emitPerS;

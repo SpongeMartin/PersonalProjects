@@ -1,4 +1,5 @@
-package com.example.particleeffectengine;
+package distributedpee;
+
 
 import javafx.animation.AnimationTimer;
 import javafx.collections.FXCollections;

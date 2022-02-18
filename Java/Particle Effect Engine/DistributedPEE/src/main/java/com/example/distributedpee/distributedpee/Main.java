@@ -1,5 +1,5 @@
-package com.example.particleeffectengine;
-
+package distributedpee;
+import com.google.gson.GsonBuilder;
 import javafx.animation.AnimationTimer;
 import javafx.application.Application;
 import javafx.application.Platform;
@@ -8,21 +8,23 @@ import javafx.scene.Scene;
 import javafx.scene.canvas.Canvas;
 import javafx.scene.canvas.GraphicsContext;
 import javafx.scene.effect.BlendMode;
+import javafx.scene.input.KeyCombination;
 import javafx.scene.layout.Pane;
 import javafx.scene.paint.Color;
 import javafx.stage.Stage;
+import mpi.MPI;
+import com.google.gson.Gson;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.concurrent.CyclicBarrier;
+
+import static javafx.application.Application.launch;
 
 public class Main extends Application {
-
     public enum AnimationOption {SEQUENTIAL,PARALLEL}
     public static GraphicsContext gc;
     public static List<Particle> particles = new ArrayList<>();
 
     public static boolean firstDeath = false;
-    private static long runstart;
     private static Pane pane;
     private static Stage primaryStage;
     public static int particlesSoFar=0;
@@ -31,15 +33,51 @@ public class Main extends Application {
     public static int windowHeight;
     public static AnimationOption animationOption = AnimationOption.SEQUENTIAL;
     public static Thread[] thread;
-    public static Particle[][] particleMatrix;
     public static int totalsteps=0;
+    public static boolean animationEnd=false;
 
-
-
-    public static void main(String[] args){
-        launch(args);
-        if (runstart!=0) System.out.println("Program se je zaključil v času " + (System.currentTimeMillis()-runstart));
+    public static void main(String[] args) {
+        MPI.Init(args);
+        int me = MPI.COMM_WORLD.Rank();
+        if (me==0) {
+            System.out.println(MPI.COMM_WORLD.Size());
+            int cores=MPI.COMM_WORLD.Size();
+            launch(args);
+            System.out.println("ok?");
+            animationEnd=true;
+            int[] info = new int[4];
+            info[2]=1;
+            for (int i = 1; i < cores; i++) {
+                MPI.COMM_WORLD.Send(info,0,info.length,MPI.INT,i,4);
+            }
+        }else{
+            Gson gson = new Gson();
+            GsonBuilder gsonBuilder = new GsonBuilder();
+            gsonBuilder.serializeSpecialFloatingPointValues();
+            while (true) {
+                int[] info=new int[4]; //info0-total particles info1-windowwidth info2-chunksize info3-windowheight info4-end of program is 1, continue is 0
+                MPI.COMM_WORLD.Recv(info,0,info.length,MPI.INT,0,4);
+                if (info[2]==1) break;
+                totalParticles=info[0];
+                windowWidth = info[1];
+                windowHeight = info[3];
+                int messagesize = MPI.COMM_WORLD.Probe(0, 0).count;
+                char[] particleinfo = new char[messagesize];
+                MPI.COMM_WORLD.Recv(particleinfo, 0, messagesize, MPI.CHAR, 0, 0);
+                String particlestring = String.valueOf(particleinfo);
+                Particle[] particles = gson.fromJson(particlestring, Particle[].class);
+                for (int i = 0; i<particles.length;i++) {
+                    Particle particle = particles[i];
+                    if (particle == null) continue;
+                    particle.doStepTred(particles,i);
+                }
+                char[] charparticle = gsonBuilder.create().toJson(particles).toCharArray();
+                MPI.COMM_WORLD.Send(charparticle, 0, charparticle.length, MPI.CHAR, 0, 1);
+            }
+        }
+        MPI.Finalize();
     }
+
 
     @Override
     public void start(Stage stage) throws Exception {
@@ -62,7 +100,6 @@ public class Main extends Application {
         createAnimationPane(pane);
         primaryStage.sizeToScene();
         primaryStage.centerOnScreen();
-        runstart = System.currentTimeMillis();
 
         Emitter emitter = new Emitter(emitperS,emitterX,emitterY,timeToLive);
         int cores = Runtime.getRuntime().availableProcessors();
@@ -155,13 +192,13 @@ public class Main extends Application {
         gc.setGlobalAlpha(1.0);
         gc.setGlobalBlendMode(BlendMode.SRC_OVER);
         gc.setFill(Color.BLACK);
-        gc.fillRect(0,0,windowWidth,windowHeight);
+        gc.fillRect(0,0,windowWidth,windowHeight+20);
     }
 
     public static void addingParticles(Emitter emitter,int TTL){
         if (!firstDeath) particles.addAll(emitter.emit());
         if (animationOption.toString().equals("PARALLEL")){
-            parallelProgram(emitter.x,emitter.y,TTL);
+            distributedProgram();
         }else{
             sequentialProgram(emitter.x,emitter.y,TTL);
         }
@@ -184,32 +221,74 @@ public class Main extends Application {
         }
     }
 
-    public static void parallelProgram(int emitterX, int emitterY,int TTL){
-        int cores = Runtime.getRuntime().availableProcessors();
-        double subzoneWidth=windowWidth/cores;
-        int chunk = particles.size()/cores;
-        int extra = particles.size() - chunk*cores;
-        CyclicBarrier barrier = new CyclicBarrier(cores);
-        particleMatrix = new Particle[cores][particles.size()];
-        for (int i = 0; i < cores; i++) {
-            if (i==cores-1) thread[i] = new Thread(new ParticleThread(chunk*i,chunk*(i+1)+extra,subzoneWidth,i,barrier,particleMatrix,emitterX,emitterY,TTL));
-            else thread[i] = new Thread(new ParticleThread(chunk*i,chunk*(i+1),subzoneWidth,i,barrier,particleMatrix,emitterX,emitterY,TTL));
-        }
-        for (int i = 0; i < cores; i++) {
-            thread[i].start();
-        }
-        for (int i = 0; i < cores; i++) {
-            try {
-                thread[i].join();
-            } catch (InterruptedException e) {
-                e.printStackTrace();
-            }
-        }
-        for (int i = 0; i < particles.size(); i++) {
-            Particle particle = particles.get(i);
-            if (particle.steps<=0 && !(totalParticles>particlesSoFar)) particles.remove(i);
-            else particle.render(Main.gc);
+    public static void distributedProgram(){
+        int cores=MPI.COMM_WORLD.Size();
+        Gson gson = new Gson();
+        GsonBuilder gsonBuilder = new GsonBuilder();
+        gsonBuilder.serializeSpecialFloatingPointValues();
+        Particle[][] particleMatrix = new Particle[cores][particles.size()];
+        sendInfo(cores);
+        distributeParticles(gsonBuilder,particleMatrix,cores);
+        receiveParticles(gson,cores);
+        renderParticles();
+        Main.particlesSoFar=particles.size();
+    }
+
+    public static void sendInfo(int cores){
+        int[] info = new int[4];
+        info[0]=totalParticles;
+        info[1]=windowWidth;
+        info[2]=0;
+        info[3]=windowHeight;
+        for (int i = 1; i < cores; i++) {
+            MPI.COMM_WORLD.Send(info,0,info.length,MPI.INT,i,4);
         }
     }
 
+    public static void distributeParticles(GsonBuilder gsonBuilder,Particle[][] particleMatrix,int cores){
+        double zoneWidth = (double)windowWidth/(double)(cores-1);
+        char[] composedParticles;
+        int[] counter = new int[cores-1];
+        for (Particle particle : particles) {
+            int zone = (int)(particle.x/zoneWidth);
+            if (zone>=cores-1) zone=cores-2;
+            if (zone<0) zone = 0;
+            particleMatrix[zone][counter[zone]] = particle;
+            counter[zone]++;
+        }
+        for (int i = 1; i < cores; i++) {
+            composedParticles = gsonBuilder.create().toJson(particleMatrix[i-1]).toCharArray();
+            MPI.COMM_WORLD.Send(composedParticles,0,composedParticles.length,MPI.CHAR,i,0);
+        }
+    }
+
+    public static void receiveParticles(Gson gson, int cores){
+        int next=0;
+        for (int i = 1; i < cores; i++) {
+            int mSize = MPI.COMM_WORLD.Probe(i,1).count;
+            char[] temp = new char[mSize];
+            MPI.COMM_WORLD.Recv(temp,0,mSize,MPI.CHAR,i,1);
+            Particle[] array = gson.fromJson(String.valueOf(temp),Particle[].class);
+            for (int j = 0; j < array.length; j++) {
+                if (array[j]==null){
+                    continue;
+                }
+                particles.set(next,array[j]);
+                next++;
+            }
+        }
+    }
+
+    public static void renderParticles(){
+        for (int i = 0; i < particles.size(); i++) {
+            Particle particle = particles.get(i);
+            if (particle==null) continue;
+            if (particle.steps<=0 && totalParticles==particles.size() || firstDeath && particle.steps<=0) {
+                particles.remove(i);
+                firstDeath=true;
+            }else{
+                particle.render(Main.gc);
+            }
+        }
+    }
 }
